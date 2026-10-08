@@ -1,0 +1,27 @@
+{
+  "format_version": "1.2",
+  "terraform_version": "1.7.0",
+  "resource_changes": [
+    {
+      "address": "aws_s3_bucket.meridian_demo",
+      "mode": "managed",
+      "type": "aws_s3_bucket",
+      "name": "meridian_demo",
+      "provider_name": "registry.terraform.io/hashicorp/aws",
+      "change": {
+        "actions": [
+          "delete"
+        ],
+        "before": {
+          "bucket": "meridian-drift-demo-bucket",
+          "tags": {
+            "Environment": "development",
+            "ManagedBy": "terraform",
+            "Project": "meridian"
+          }
+        },
+        "after": null
+      }
+    }
+  ]
+}

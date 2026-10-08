@@ -1,0 +1,60 @@
+{
+  "format_version": "1.2",
+  "terraform_version": "1.7.0",
+  "resource_changes": [
+    {
+      "address": "aws_s3_bucket.meridian_demo",
+      "mode": "managed",
+      "type": "aws_s3_bucket",
+      "name": "meridian_demo",
+      "change": {
+        "actions": [
+          "update"
+        ],
+        "before": {
+          "tags": {
+            "Environment": "production"
+          }
+        },
+        "after": {
+          "tags": {
+            "Environment": "development"
+          }
+        }
+      }
+    },
+    {
+      "address": "aws_security_group.allow_tls",
+      "mode": "managed",
+      "type": "aws_security_group",
+      "name": "allow_tls",
+      "change": {
+        "actions": [
+          "update"
+        ],
+        "before": {
+          "description": "TLS from VPC",
+          "ingress": [
+            {
+              "cidr_blocks": ["0.0.0.0/0"],
+              "from_port": 22,
+              "to_port": 22,
+              "protocol": "tcp"
+            }
+          ]
+        },
+        "after": {
+          "description": "TLS from VPC",
+          "ingress": [
+            {
+              "cidr_blocks": ["10.0.0.0/16"],
+              "from_port": 443,
+              "to_port": 443,
+              "protocol": "tcp"
+            }
+          ]
+        }
+      }
+    }
+  ]
+}

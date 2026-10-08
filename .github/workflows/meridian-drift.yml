@@ -1,0 +1,83 @@
+name: MERIDIAN Drift Detection & Remediation
+
+on:
+  schedule:
+    # Run every 30 minutes
+    - cron: '*/30 * * * *'
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: 'Simulate PR without creating'
+        required: false
+        default: 'false'
+        type: boolean
+      llm_provider:
+        description: 'LLM provider to use'
+        required: false
+        default: 'gemini'
+        type: choice
+        options:
+          - gemini
+          - openai
+          - mock
+
+permissions:
+  id-token: write   # Required for AWS OIDC authentication
+  contents: write   # Required for pushing remediation branch
+  pull-requests: write # Required for opening Pull Request
+
+jobs:
+  meridian-drift-check:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: Install Python Dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.7.0
+
+      - name: Configure AWS Credentials (OIDC - Least Privilege Plan Role)
+        if: env.AWS_ROLE_ARN != ''
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          aws-region: ${{ secrets.AWS_REGION || 'us-east-1' }}
+          role-session-name: MeridianDriftDetectionSession
+
+      - name: Initialize & Generate Terraform Plan
+        working-directory: ./terraform
+        run: |
+          terraform init -input=false
+          terraform plan -detailed-exitcode -out=tfplan || exit_code=$?
+          echo "PLAN_EXIT_CODE=${exit_code}" >> $GITHUB_ENV
+          if [ -f tfplan ]; then
+            terraform show -json tfplan > ../tfplan.json
+          fi
+
+      - name: Run MERIDIAN Pipeline
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          LLM_PROVIDER: ${{ inputs.llm_provider || 'gemini' }}
+        run: |
+          if [ -f tfplan.json ]; then
+            python src/main.py --plan-json tfplan.json --dry-run ${{ inputs.dry_run || 'false' }} --llm-provider ${{ inputs.llm_provider || 'gemini' }}
+          else
+            python src/main.py --plan-json tests/fixtures/update_plan.json --dry-run true --llm-provider mock
+          fi

@@ -1,0 +1,11 @@
+{
+  "name": "iac-sentinal",
+  "version": "1.0.0",
+  "description": "IaC Sentinal - AI-Assisted Terraform Drift Detection & Human-Approved Remediation",
+  "scripts": {
+    "dev": "npm --prefix frontend run dev",
+    "build": "npm --prefix frontend run build",
+    "start": "npm --prefix frontend run start",
+    "lint": "npm --prefix frontend run lint"
+  }
+}
